@@ -31,62 +31,71 @@ class Enum(set):
 
 class TkWindow:
     def __init__(self, win):
-        global edit_mode_rb
+        global algo_selection, edit_mode_rb
 
-        self.lbl1 = Label(win, text='Rows:')
-        self.lbl2 = Label(win, text='Columns:')
-        self.lbl3 = Label(win, text='Algorithm:')
-        self.t1 = Entry()
-        self.t1.insert(END, str(ROWS))
-        self.t2 = Entry()
-        self.t2.insert(END, str(COLUMNS))
+        #####   DECLARING   #####
+        self.lbl_rows = Label(win, text='Rows:')
+        self.lbl_cols = Label(win, text='Columns:')
+        self.lbl_cell_size = Label(win, text='Cell Size:')
+        self.lbl_algo = Label(win, text='Algorithm:')
+        self.t_rows = Entry()
+        self.t_rows.insert(END, str(ROWS))
+        self.t_cols = Entry()
+        self.t_cols.insert(END, str(COLUMNS))
+        self.t_cell_size = Entry()
+        self.t_cell_size.insert(END, str(CELL_SIZE))
 
-        algo = StringVar()
-        algo.set('Dijkstra')
+        algo_selection.set('Dijkstra')
         data = ('Dijkstra')
         self.cb = Combobox(win, values=data)
         self.cb.current(0)
 
         edit_mode_rb.set(1)
-        self.lbl4 = Label(win, text='Editing Mode:')
-        self.rbtn1 = Radiobutton(
+        self.lbl_editmode = Label(win, text='Editing Mode:')
+        self.rb_src = Radiobutton(
             win, text='Source', variable=edit_mode_rb, value=1, command=change_editing_mode)
-        self.rbtn2 = Radiobutton(
+        self.rb_dest = Radiobutton(
             win, text='Destination', variable=edit_mode_rb, value=2, command=change_editing_mode)
-        self.rbtn3 = Radiobutton(
+        self.rb_wall = Radiobutton(
             win, text='Wall', variable=edit_mode_rb, value=3, command=change_editing_mode)
 
-        self.btn1 = Button(win, text='Find Path', command=find_path)
-        self.btn2 = Button(win, text='Build Grid', command=self.build_click)
+        self.btn_find = Button(win, text='Find Path', command=find_path)
+        self.btn_build_grid = Button(
+            win, text='Build Grid', command=self.build_click)
 
-        self.lbl1.place(x=50, y=40)
-        self.t1.place(x=150, y=40)
-        self.lbl2.place(x=50, y=80)
-        self.t2.place(x=150, y=80)
-        self.lbl3.place(x=50, y=120)
+        #####   PLACING #####
 
-        self.cb.place(x=150, y=120)
+        self.lbl_rows.place(x=50, y=40)
+        self.t_rows.place(x=150, y=40)
+        self.lbl_cols.place(x=50, y=80)
+        self.t_cols.place(x=150, y=80)
+        self.lbl_cell_size.place(x=50, y=120)
+        self.t_cell_size.place(x=150, y=120)
+        self.lbl_algo.place(x=50, y=160)
 
-        self.lbl4.place(x=50, y=160)
-        self.rbtn1.place(x=150, y=160)
-        self.rbtn2.place(x=150, y=180)
-        self.rbtn3.place(x=150, y=200)
+        self.cb.place(x=150, y=160)
 
-        self.btn2.place(x=50, y=240)
-        self.btn1.place(x=150, y=240)
+        self.lbl_editmode.place(x=50, y=200)
+        self.rb_src.place(x=150, y=200)
+        self.rb_dest.place(x=150, y=220)
+        self.rb_wall.place(x=150, y=240)
+
+        self.btn_build_grid.place(x=50, y=280)
+        self.btn_find.place(x=150, y=280)
 
         root.title('Pathfinder Settings')
-        root.geometry("400x300+10+10")
+        root.geometry("350x400+10+10")
 
         os.environ['SDL_WINDOWID'] = str(root.winfo_id())
         if platform.system == "Windows":
             os.environ['SDL_VIDEODRIVER'] = 'windib'
 
     def build_click(self):
-        tmp_rows = int(self.t1.get())
-        tmp_cols = int(self.t2.get())
+        tmp_rows = int(self.t_rows.get())
+        tmp_cols = int(self.t_cols.get())
+        tmp_cell_size = int(self.t_cell_size.get())
 
-        refresh_rows_cols(tmp_rows, tmp_cols)
+        refresh_rows_cols(tmp_rows, tmp_cols, tmp_cell_size)
         init_pygame()
 
 
@@ -127,6 +136,7 @@ screen = None
 current_mode = EDITING_MODES.SOURCE
 edit_mode_rb = IntVar()
 
+algo_selection = StringVar()
 
 matrix = None
 
@@ -245,10 +255,17 @@ def find_path():
     pass
 
 
-def refresh_rows_cols(rows, cols):
-    global ROWS, COLUMNS, WINDOW_WIDTH, WINDOW_HEIGHT
-    ROWS = rows
-    COLUMNS = cols
+def refresh_rows_cols(rows, cols, cell_size):
+    global ROWS, COLUMNS, WINDOW_WIDTH, WINDOW_HEIGHT, CELL_SIZE
+
+    if rows is not 0:
+        ROWS = rows
+
+    if cols is not 0:
+        COLUMNS = cols
+
+    if cell_size is not 0:
+        CELL_SIZE = cell_size
 
     WINDOW_WIDTH = COLUMNS*CELL_SIZE
     WINDOW_HEIGHT = ROWS*CELL_SIZE
