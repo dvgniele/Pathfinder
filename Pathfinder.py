@@ -6,11 +6,11 @@ from tkinter.ttk import Combobox
 import os
 import platform
 
-from pygame.locals import QUIT, KEYDOWN, K_KP_ENTER, K_SPACE, K_ESCAPE, K_s, K_d, K_w
+from pygame.locals import QUIT, KEYDOWN, K_KP_ENTER, K_SPACE, K_ESCAPE, K_s, K_d, K_w, MOUSEBUTTONDOWN, MOUSEBUTTONUP, MOUSEMOTION
 
 
 class Node:
-    def __init__(self, coords, shape, distance_from_start, is_wall=False, is_visited=False, predecessor=None):
+    def __init__(self, coords, shape, distance_from_start=np.inf, is_wall=False, is_visited=False, predecessor=None):
         self.coords = coords
         self.shape = shape
         self.distance_from_start = distance_from_start
@@ -31,6 +31,8 @@ class Enum(set):
 
 class TkWindow:
     def __init__(self, win):
+        global edit_mode_rb
+
         self.lbl1 = Label(win, text='Rows:')
         self.lbl2 = Label(win, text='Columns:')
         self.lbl3 = Label(win, text='Algorithm:')
@@ -39,11 +41,20 @@ class TkWindow:
         self.t2 = Entry()
         self.t2.insert(END, str(COLUMNS))
 
-        var = StringVar()
-        var.set('Dijkstra')
+        algo = StringVar()
+        algo.set('Dijkstra')
         data = ('Dijkstra')
         self.cb = Combobox(win, values=data)
         self.cb.current(0)
+
+        edit_mode_rb.set(1)
+        self.lbl4 = Label(win, text='Editing Mode:')
+        self.rbtn1 = Radiobutton(
+            win, text='Source', variable=edit_mode_rb, value=1, command=change_editing_mode)
+        self.rbtn2 = Radiobutton(
+            win, text='Destination', variable=edit_mode_rb, value=2, command=change_editing_mode)
+        self.rbtn3 = Radiobutton(
+            win, text='Wall', variable=edit_mode_rb, value=3, command=change_editing_mode)
 
         self.btn1 = Button(win, text='Find Path', command=find_path)
         self.btn2 = Button(win, text='Build Grid', command=self.build_click)
@@ -56,8 +67,13 @@ class TkWindow:
 
         self.cb.place(x=150, y=120)
 
-        self.btn2.place(x=50, y=160)
-        self.btn1.place(x=150, y=160)
+        self.lbl4.place(x=50, y=160)
+        self.rbtn1.place(x=150, y=160)
+        self.rbtn2.place(x=150, y=180)
+        self.rbtn3.place(x=150, y=200)
+
+        self.btn2.place(x=50, y=240)
+        self.btn1.place(x=150, y=240)
 
         root.title('Pathfinder Settings')
         root.geometry("400x300+10+10")
@@ -109,12 +125,18 @@ root.protocol('WM_DELETE_WINDOW', close)
 screen = None
 
 current_mode = EDITING_MODES.SOURCE
+edit_mode_rb = IntVar()
 
-source = None
-destination = None
+
+matrix = None
+
+source_coords = None
+destination_coords = None
 
 running = True
 pygame_started = False
+
+holding = False
 
 
 def init_settings_window():
@@ -122,7 +144,7 @@ def init_settings_window():
 
 
 def init_pygame():
-    global pygame_started
+    global pygame_started, matrix, screen
 
     screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
     screen.fill(CELL_BORDER)
@@ -133,7 +155,7 @@ def init_pygame():
     pygame.display.update()
 
     matrix = init_matrix()
-    init_grid(matrix, screen)
+    init_grid()
     pygame.display.update()
 
     pygame_started = True
@@ -143,7 +165,8 @@ def init_matrix():
     return np.empty((ROWS, COLUMNS), dtype=Node)
 
 
-def init_grid(matrix, screen):
+def init_grid():
+    global screen, matrix
     PADDING = (WINDOW_WIDTH - MARGIN * COLUMNS) // COLUMNS
 
     for x in range(ROWS):
@@ -160,6 +183,64 @@ def init_grid(matrix, screen):
                                 distance_from_start=np.inf)
 
 
+def mark_cell():
+    global matrix, screen, source_coords, destination_coords
+    coords = pygame.mouse.get_pos()
+    x = coords[1]//CELL_SIZE
+    y = coords[0]//CELL_SIZE
+
+    hover_node = matrix[x][y]
+
+    if current_mode == EDITING_MODES.SOURCE:
+        source_cell = None
+        if source_coords is None:
+            source_coords = x, y
+            source_cell = matrix[source_coords[0], source_coords[1]]
+
+        else:
+            source_cell = matrix[source_coords[0], source_coords[1]]
+            pygame.draw.rect(screen, CELL, source_cell.shape)
+            matrix[source_coords[0], source_coords[1]] = Node(source_coords, source_cell.shape.copy(), distance_from_start=np.inf,
+                                                              is_wall=False, is_visited=False, predecessor=None)
+            source_coords = x, y
+            source_cell = matrix[source_coords[0], source_coords[1]]
+
+        pygame.draw.rect(screen, SOURCE, source_cell.shape)
+        matrix[source_coords[0], source_coords[1]] = Node(source_coords, source_cell.shape.copy(), distance_from_start=0,
+                                                          is_wall=True, is_visited=True, predecessor=None)
+
+    if current_mode == EDITING_MODES.DESTINATION:
+        destination_cell = None
+        if destination_coords is None:
+            destination_coords = x, y
+            destination_cell = matrix[destination_coords[0],
+                                      destination_coords[1]]
+
+        else:
+            destination_cell = matrix[destination_coords[0],
+                                      destination_coords[1]]
+            pygame.draw.rect(screen, CELL, destination_cell.shape)
+
+            matrix[destination_coords[0], destination_coords[1]] = Node(
+                destination_coords, destination_cell.shape.copy())
+
+            destination_coords = x, y
+            destination_cell = matrix[destination_coords[0],
+                                      destination_coords[1]]
+
+        pygame.draw.rect(screen, DESTINATION, destination_cell.shape)
+        matrix[destination_coords[0], destination_coords[1]] = Node(
+            destination_coords, destination_cell.shape.copy())
+
+    if current_mode == EDITING_MODES.WALL:
+        if hover_node is not source_coords and hover_node is not destination_coords:
+            hover_node.is_wall = True
+            rect = hover_node.shape
+            pygame.draw.rect(screen, WALL, rect)
+
+    pygame.display.update()
+
+
 def find_path():
     pass
 
@@ -174,7 +255,7 @@ def refresh_rows_cols(rows, cols):
 
 
 def check_for_events():
-    global pygame_started
+    global pygame_started, holding, screen
 
     for event in pygame.event.get():
         if event.type == QUIT:
@@ -192,14 +273,26 @@ def check_for_events():
             if event.key == K_SPACE:
                 pass
 
-            if event.key == K_s:  # enable source selection
-                pass
+        if event.type == MOUSEBUTTONDOWN:
+            mark_cell()
+            holding = True
 
-            if event.key == K_d:  # enable destination selection
-                pass
+        if event.type == MOUSEBUTTONUP:
+            holding = False
 
-            if event.key == K_w:  # enable wall selection
-                pass
+        if event.type == MOUSEMOTION and holding:
+            mark_cell()
+
+
+def change_editing_mode():
+    global edit_mode_rb, current_mode
+
+    if edit_mode_rb.get() == 1:
+        current_mode = EDITING_MODES.SOURCE
+    if edit_mode_rb.get() == 2:
+        current_mode = EDITING_MODES.DESTINATION
+    if edit_mode_rb.get() == 3:
+        current_mode = EDITING_MODES.WALL
 
 
 def main():
