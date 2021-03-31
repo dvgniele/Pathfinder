@@ -47,7 +47,7 @@ class TkWindow:
         self.t_cell_size.insert(END, str(CELL_SIZE))
 
         algo_selection.set('Dijkstra')
-        data = ('Dijkstra', 'SKRT')
+        data = ('Dijkstra', 'A*')
         self.cb = Combobox(win, values=data)
         self.cb.current(0)
 
@@ -60,6 +60,8 @@ class TkWindow:
             win, text='Destination', variable=edit_mode_rb, value=2, command=change_editing_mode)
         self.rb_wall = Radiobutton(
             win, text='Wall', variable=edit_mode_rb, value=3, command=change_editing_mode)
+        self.rb_erase = Radiobutton(
+            win, text='Erase', variable=edit_mode_rb, value=4, command=change_editing_mode)
 
         #####   BUTTONS    #####
         self.btn_find = Button(win, text='Find Path', command=find_path)
@@ -82,9 +84,10 @@ class TkWindow:
         self.rb_src.place(x=150, y=200)
         self.rb_dest.place(x=150, y=220)
         self.rb_wall.place(x=150, y=240)
+        self.rb_erase.place(x=150, y=260)
 
-        self.btn_build_grid.place(x=50, y=280)
-        self.btn_find.place(x=150, y=280)
+        self.btn_build_grid.place(x=50, y=300)
+        self.btn_find.place(x=150, y=300)
 
         root.title('Pathfinder Settings')
         root.geometry("350x400+10+10")
@@ -102,7 +105,7 @@ class TkWindow:
         init_pygame()
 
 
-EDITING_MODES = Enum(["SOURCE", "DESTINATION", "WALL"])
+EDITING_MODES = Enum(["SOURCE", "DESTINATION", "WALL", "ERASE"])
 
 WINDOW_WIDTH = 500
 WINDOW_HEIGHT = 500
@@ -115,13 +118,15 @@ COLUMNS = 25
 WINDOW_WIDTH = COLUMNS*CELL_SIZE
 WINDOW_HEIGHT = ROWS*CELL_SIZE
 
-CELL = (255, 255, 255)
+CELL = (192, 192, 192)
 WALL = (0, 0, 0)
 CELL_BORDER = (0, 0, 0)
 SOURCE = (0, 0, 255)
 DESTINATION = (255, 0, 0)
-VISITED = (255, 255, 0)
-PATH = (0, 255, 0)
+VISITED = (255, 255, 255)
+#VISITED = (255, 255, 0)
+#PATH = (0, 255, 0)
+PATH = (114, 255, 209)
 
 
 def close():
@@ -256,6 +261,12 @@ def mark_cell():
             rect = hover_node.shape
             pygame.draw.rect(screen, WALL, rect)
 
+    if current_mode == EDITING_MODES.ERASE:
+        if hover_node.coords is not source_coords and hover_node.coords is not destination_coords:
+            pygame.draw.rect(screen, CELL, hover_node.shape)
+            matrix[hover_node.coords[0], hover_node.coords[1]] = Node(hover_node.coords, hover_node.shape.copy(), distance_from_start=np.inf,
+                                                                      is_wall=False, is_visited=False, predecessor=None)
+
     pygame.display.update()
 
 
@@ -325,6 +336,8 @@ def change_editing_mode():
         current_mode = EDITING_MODES.DESTINATION
     if edit_mode_rb.get() == 3:
         current_mode = EDITING_MODES.WALL
+    if edit_mode_rb.get() == 4:
+        current_mode = EDITING_MODES.ERASE
 
 
 def Dijkstra():
@@ -368,7 +381,9 @@ def Dijkstra():
         if path_found:
             highlight_path()
             break
-
+        
+    if not unvisited and not path_found:
+        print('THERE IS NO PATH')
 
 def mark_as_visited(node: Node, distance_from_start, predecessor):
     global destination_coords, path_found
