@@ -333,7 +333,6 @@ def Dijkstra():
     path_found = False
 
     while unvisited:
-        print(len(unvisited))
         nearest_node = heapq.heappop(unvisited)
 
         y, x = nearest_node.coords
