@@ -207,48 +207,51 @@ def mark_cell():
     hover_node = matrix[x][y]
 
     if current_mode == EDITING_MODES.SOURCE:
-        source_cell = None
-        if source_coords is None:
-            source_coords = x, y
-            source_cell = matrix[source_coords[0], source_coords[1]]
+        if hover_node.coords is not source_coords and hover_node.coords is not destination_coords:
 
-        else:
-            source_cell = matrix[source_coords[0], source_coords[1]]
-            pygame.draw.rect(screen, CELL, source_cell.shape)
-            matrix[source_coords[0], source_coords[1]] = Node(source_coords, source_cell.shape.copy(), distance_from_start=np.inf,
-                                                              is_wall=False, is_visited=False, predecessor=None)
-            source_coords = x, y
-            source_cell = matrix[source_coords[0], source_coords[1]]
+            source_cell = None
+            if source_coords is None:
+                source_coords = x, y
+                source_cell = matrix[source_coords[0], source_coords[1]]
 
-        pygame.draw.rect(screen, SOURCE, source_cell.shape)
-        matrix[source_coords[0], source_coords[1]] = Node(source_coords, source_cell.shape.copy(), distance_from_start=0,
-                                                          is_wall=True, is_visited=True, predecessor=None)
+            else:
+                source_cell = matrix[source_coords[0], source_coords[1]]
+                pygame.draw.rect(screen, CELL, source_cell.shape)
+                matrix[source_coords[0], source_coords[1]] = Node(source_coords, source_cell.shape.copy(), distance_from_start=np.inf,
+                                                                  is_wall=False, is_visited=False, predecessor=None)
+                source_coords = x, y
+                source_cell = matrix[source_coords[0], source_coords[1]]
+
+            pygame.draw.rect(screen, SOURCE, source_cell.shape)
+            matrix[source_coords[0], source_coords[1]] = Node(source_coords, source_cell.shape.copy(), distance_from_start=0,
+                                                              is_wall=True, is_visited=True, predecessor=None)
 
     if current_mode == EDITING_MODES.DESTINATION:
         destination_cell = None
-        if destination_coords is None:
-            destination_coords = x, y
-            destination_cell = matrix[destination_coords[0],
-                                      destination_coords[1]]
+        if hover_node.coords is not source_coords and hover_node.coords is not destination_coords:
+            if destination_coords is None:
+                destination_coords = x, y
+                destination_cell = matrix[destination_coords[0],
+                                          destination_coords[1]]
 
-        else:
-            destination_cell = matrix[destination_coords[0],
-                                      destination_coords[1]]
-            pygame.draw.rect(screen, CELL, destination_cell.shape)
+            else:
+                destination_cell = matrix[destination_coords[0],
+                                          destination_coords[1]]
+                pygame.draw.rect(screen, CELL, destination_cell.shape)
 
+                matrix[destination_coords[0], destination_coords[1]] = Node(
+                    destination_coords, destination_cell.shape.copy())
+
+                destination_coords = x, y
+                destination_cell = matrix[destination_coords[0],
+                                          destination_coords[1]]
+
+            pygame.draw.rect(screen, DESTINATION, destination_cell.shape)
             matrix[destination_coords[0], destination_coords[1]] = Node(
                 destination_coords, destination_cell.shape.copy())
 
-            destination_coords = x, y
-            destination_cell = matrix[destination_coords[0],
-                                      destination_coords[1]]
-
-        pygame.draw.rect(screen, DESTINATION, destination_cell.shape)
-        matrix[destination_coords[0], destination_coords[1]] = Node(
-            destination_coords, destination_cell.shape.copy())
-
     if current_mode == EDITING_MODES.WALL:
-        if hover_node is not source_coords and hover_node is not destination_coords:
+        if hover_node.coords is not source_coords and hover_node.coords is not destination_coords:
             hover_node.is_wall = True
             rect = hover_node.shape
             pygame.draw.rect(screen, WALL, rect)
