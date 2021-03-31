@@ -5,6 +5,7 @@ from tkinter import *
 from tkinter.ttk import Combobox
 import os
 import platform
+import heapq
 
 from pygame.locals import QUIT, KEYDOWN, K_KP_ENTER, K_SPACE, K_ESCAPE, K_s, K_d, K_w, MOUSEBUTTONDOWN, MOUSEBUTTONUP, MOUSEMOTION
 
@@ -33,7 +34,7 @@ class TkWindow:
     def __init__(self, win):
         global algo_selection, edit_mode_rb
 
-        #####   DECLARING   #####
+        #####   DECLARING LABELS AND ENTRIES   #####
         self.lbl_rows = Label(win, text='Rows:')
         self.lbl_cols = Label(win, text='Columns:')
         self.lbl_cell_size = Label(win, text='Cell Size:')
@@ -46,10 +47,11 @@ class TkWindow:
         self.t_cell_size.insert(END, str(CELL_SIZE))
 
         algo_selection.set('Dijkstra')
-        data = ('Dijkstra')
+        data = ('Dijkstra', 'SKRT')
         self.cb = Combobox(win, values=data)
         self.cb.current(0)
 
+        #####   RADIO BUTTONS    #####
         edit_mode_rb.set(1)
         self.lbl_editmode = Label(win, text='Editing Mode:')
         self.rb_src = Radiobutton(
@@ -59,6 +61,7 @@ class TkWindow:
         self.rb_wall = Radiobutton(
             win, text='Wall', variable=edit_mode_rb, value=3, command=change_editing_mode)
 
+        #####   BUTTONS    #####
         self.btn_find = Button(win, text='Find Path', command=find_path)
         self.btn_build_grid = Button(
             win, text='Build Grid', command=self.build_click)
@@ -142,6 +145,8 @@ matrix = None
 
 source_coords = None
 destination_coords = None
+
+path_found = False
 
 running = True
 pygame_started = False
@@ -252,7 +257,14 @@ def mark_cell():
 
 
 def find_path():
-    pass
+    global pygame_started
+
+    if not pygame_started:
+        init_pygame()
+        return
+
+    if algo_selection.get() == 'Dijkstra':
+        Dijkstra()
 
 
 def refresh_rows_cols(rows, cols, cell_size):
@@ -310,6 +322,81 @@ def change_editing_mode():
         current_mode = EDITING_MODES.DESTINATION
     if edit_mode_rb.get() == 3:
         current_mode = EDITING_MODES.WALL
+
+
+def Dijkstra():
+    global path_found
+
+    source = matrix[source_coords[0], source_coords[1]]
+    unvisited = [source]
+
+    path_found = False
+
+    while unvisited:
+        print(len(unvisited))
+        nearest_node = heapq.heappop(unvisited)
+
+        y, x = nearest_node.coords
+        distance_from_start = nearest_node.distance_from_start + 1
+
+        left_node = None
+        if 0 <= x-1 < COLUMNS:
+            left_node = matrix[y][x-1]
+
+        right_node = None
+        if 0 <= x+1 < COLUMNS:
+            right_node = matrix[y][x+1]
+
+        upper_node = None
+        if 0 <= y-1 < ROWS:
+            upper_node = matrix[y-1][x]
+
+        lower_node = None
+        if 0 <= y+1 < ROWS:
+            lower_node = matrix[y+1][x]
+
+        neighbours = [left_node, right_node, upper_node, lower_node]
+
+        for neighbour in neighbours:
+
+            if neighbour and not neighbour.is_visited and not neighbour.is_wall:
+                heapq.heappush(unvisited, neighbour)
+                mark_as_visited(neighbour, distance_from_start, nearest_node)
+
+        if path_found:
+            highlight_path()
+            break
+
+
+def mark_as_visited(node: Node, distance_from_start, predecessor):
+    global destination_coords, path_found
+
+    if distance_from_start < node.distance_from_start:
+        node.distance_from_start = distance_from_start
+        node.is_visited = True
+        node.predecessor = predecessor
+
+        if node.coords != destination_coords:
+            rect = node.shape
+            pygame.draw.rect(screen, VISITED, rect)
+
+            pygame.display.update()
+        else:
+            path_found = True
+
+
+def highlight_path():
+    global destination_coords, source_coords
+    current = matrix[destination_coords[0], destination_coords[1]].predecessor
+    source_node = matrix[source_coords[0], source_coords[1]]
+
+    while current != source_node:
+        rect = current.shape
+        pygame.draw.rect(screen, PATH, rect)
+
+        pygame.display.update()
+
+        current = current.predecessor
 
 
 def main():
