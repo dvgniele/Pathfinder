@@ -33,7 +33,7 @@
 - Click on the `Find Path` button to start the algorithm
 > How it looks
 > ## Path found with Dijkstra:
-![Dijkstra path](https://imgur.com/a/BfmY5zJ)
+![Dijkstra path](https://i.imgur.com/bOOCI75.png)
 > ## Path found with A*:
-![A* path](https://imgur.com/a/DbmYpzb)
+![A* path](https://i.imgur.com/OPbSe8V.png)
 
