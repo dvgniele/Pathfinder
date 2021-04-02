@@ -31,9 +31,9 @@
 - Select `Wall` if you want to draw some walls or `Erase` if you want to erase some walls
 - Select the algorithm you want to test
 - Click on the `Find Path` button to start the algorithm
-> How it looks
-> ## Path found with Dijkstra:
+## How it looks
+> ### Path found with Dijkstra:
 ![Dijkstra path](https://i.imgur.com/bOOCI75.png)
-> ## Path found with A*:
-![A* path](https://i.imgur.com/OPbSe8V.png)
+> ### Path found with A*:
+![A* path](https://i.imgur.com/OPbSe8V.png
 
