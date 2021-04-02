@@ -11,13 +11,16 @@ from pygame.locals import QUIT, KEYDOWN, K_KP_ENTER, K_SPACE, K_ESCAPE, K_s, K_d
 
 
 class Node:
-    def __init__(self, coords, shape, distance_from_start=np.inf, is_wall=False, is_visited=False, predecessor=None):
+    def __init__(self, coords, shape, distance_from_start=np.inf, is_wall=False, is_visited=False, predecessor=None, f=np.inf, g=np.inf, h=np.inf):
         self.coords = coords
         self.shape = shape
         self.distance_from_start = distance_from_start
         self.is_wall = is_wall
         self.is_visited = is_visited
         self.predecessor = predecessor
+        self.f = f
+        self.g = g
+        self.h = h
 
     def __lt__(self, node_to_check):
         return self.distance_from_start < node_to_check.distance_from_start
@@ -47,8 +50,9 @@ class TkWindow:
         self.t_cell_size.insert(END, str(CELL_SIZE))
 
         algo_selection.set('Dijkstra')
-        data = ('Dijkstra', 'A*')
+        data = ('Dijkstra', 'ASearch')
         self.cb = Combobox(win, values=data)
+        self.cb.bind('<<ComboboxSelected>>', self.change_algo_selection)
         self.cb.current(0)
 
         #####   RADIO BUTTONS    #####
@@ -104,6 +108,10 @@ class TkWindow:
         refresh_rows_cols(tmp_rows, tmp_cols, tmp_cell_size)
         init_pygame()
 
+    def change_algo_selection(self, event):
+        global algo_selection
+        algo_selection.set(self.cb.get())
+
 
 EDITING_MODES = Enum(["SOURCE", "DESTINATION", "WALL", "ERASE"])
 
@@ -124,8 +132,8 @@ CELL_BORDER = (0, 0, 0)
 SOURCE = (0, 0, 255)
 DESTINATION = (255, 0, 0)
 VISITED = (255, 255, 255)
-#VISITED = (255, 255, 0)
-#PATH = (0, 255, 0)
+# VISITED = (255, 255, 0)
+# PATH = (0, 255, 0)
 PATH = (114, 255, 209)
 
 
@@ -199,8 +207,7 @@ def init_grid():
             )
             pygame.draw.rect(screen, CELL, shape)
             matrix[x][y] = Node(coords=(x, y),
-                                shape=shape.copy(),
-                                distance_from_start=np.inf)
+                                shape=shape.copy())
 
 
 def mark_cell():
@@ -228,6 +235,7 @@ def mark_cell():
                 source_cell = matrix[source_coords[0], source_coords[1]]
 
             pygame.draw.rect(screen, SOURCE, source_cell.shape)
+
             matrix[source_coords[0], source_coords[1]] = Node(source_coords, source_cell.shape.copy(), distance_from_start=0,
                                                               is_wall=True, is_visited=True, predecessor=None)
 
@@ -279,6 +287,9 @@ def find_path():
 
     if algo_selection.get() == 'Dijkstra':
         Dijkstra()
+
+    if algo_selection.get() == 'ASearch':
+        ASearch()
 
 
 def refresh_rows_cols(rows, cols, cell_size):
@@ -373,7 +384,6 @@ def Dijkstra():
         neighbours = [left_node, right_node, upper_node, lower_node]
 
         for neighbour in neighbours:
-
             if neighbour and not neighbour.is_visited and not neighbour.is_wall:
                 heapq.heappush(unvisited, neighbour)
                 mark_as_visited(neighbour, distance_from_start, nearest_node)
@@ -381,29 +391,102 @@ def Dijkstra():
         if path_found:
             highlight_path()
             break
-        
-    if not unvisited and not path_found:
+
+    if not unvisited or not path_found:
         print('THERE IS NO PATH')
 
-def mark_as_visited(node: Node, distance_from_start, predecessor):
+
+def ASearch():
+    global path_found
+
+    source = matrix[source_coords[0], source_coords[1]]
+    destination = matrix[destination_coords[0], destination_coords[1]]
+
+    source.g = 0
+    source.h = calculate_manhattan_distance(source, destination)
+    source.f = source.g + source.h
+
+    unvisited = [source]
+
+    path_found = False
+
+    while unvisited:
+        nearest_node = unvisited.pop(0)
+
+        y, x = nearest_node.coords
+
+        left_node = None
+        if 0 <= x-1:
+            left_node = matrix[y][x-1]
+
+        right_node = None
+        if x+1 < COLUMNS:
+            right_node = matrix[y][x+1]
+
+        upper_node = None
+        if 0 <= y-1:
+            upper_node = matrix[y-1][x]
+
+        lower_node = None
+        if y+1 < ROWS:
+            lower_node = matrix[y+1][x]
+
+        neighbours = [left_node, right_node, upper_node, lower_node]
+
+        for neighbour in neighbours:
+            if neighbour and not neighbour.is_visited and not neighbour.is_wall:
+                tmp_g = calculate_manhattan_distance(neighbour, source)
+                tmp_h = calculate_manhattan_distance(neighbour, destination)
+                tmp_f = tmp_g + tmp_h
+
+                if neighbour not in unvisited:
+                    heapq.heappush(unvisited, neighbour)
+
+                mark_as_visited(neighbour, tmp_f, nearest_node, tmp_g, tmp_h)
+
+        if path_found:
+            highlight_path()
+            break
+
+    if not unvisited or not path_found:
+        print('THERE IS NO PATH')
+
+
+def calculate_manhattan_distance(first_node, second_node):
+    return abs(first_node.coords[0] - second_node.coords[0]) + abs(first_node.coords[1] - second_node.coords[1])
+
+
+def mark_as_visited(node: Node, distance, predecessor, g=None, h=None):
     global destination_coords, path_found
 
-    if distance_from_start < node.distance_from_start:
-        node.distance_from_start = distance_from_start
-        node.is_visited = True
-        node.predecessor = predecessor
+    node.is_visited = True
 
-        if node.coords != destination_coords:
-            rect = node.shape
-            pygame.draw.rect(screen, VISITED, rect)
+    if algo_selection.get() == 'Dijkstra':
+        if distance < node.distance_from_start:
+            node.distance_from_start = distance
+            node.predecessor = predecessor
 
-            pygame.display.update()
-        else:
-            path_found = True
+    if algo_selection.get() == 'ASearch':
+        if distance < node.f:
+            node.g = g
+            node.h = h
+            node.f = g+h
+            node.predecessor = predecessor
+
+    if node.coords != destination_coords:
+        rect = node.shape
+        pygame.draw.rect(screen, VISITED, rect)
+
+        pygame.display.update()
+    else:
+        path_found = True
 
 
 def highlight_path():
     global destination_coords, source_coords
+
+    path_lenght = 0
+
     current = matrix[destination_coords[0], destination_coords[1]].predecessor
     source_node = matrix[source_coords[0], source_coords[1]]
 
@@ -414,6 +497,10 @@ def highlight_path():
         pygame.display.update()
 
         current = current.predecessor
+
+        path_lenght += 1
+
+    print(path_lenght)
 
 
 def main():
