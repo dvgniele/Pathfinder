@@ -35,5 +35,5 @@
 > ### Path found with Dijkstra:
 ![Dijkstra path](https://i.imgur.com/bOOCI75.png)
 > ### Path found with A*:
-![A* path](https://i.imgur.com/OPbSe8V.png
+![A* path](https://i.imgur.com/OPbSe8V.png)
 
