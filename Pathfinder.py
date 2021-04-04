@@ -50,7 +50,7 @@ class TkWindow:
         self.t_cell_size.insert(END, str(CELL_SIZE))
 
         algo_selection.set('Dijkstra')
-        data = ('Dijkstra', 'ASearch')
+        data = ('Dijkstra', 'ASearch', 'BFS', 'DFS')
         self.cb = Combobox(win, values=data)
         self.cb.bind('<<ComboboxSelected>>', self.change_algo_selection)
         self.cb.current(0)
@@ -291,6 +291,12 @@ def find_path():
     if algo_selection.get() == 'ASearch':
         ASearch()
 
+    if algo_selection.get() == 'BFS':
+        BFS()
+
+    if algo_selection.get() == 'DFS':
+        DFS()
+
 
 def refresh_rows_cols(rows, cols, cell_size):
     global ROWS, COLUMNS, WINDOW_WIDTH, WINDOW_HEIGHT, CELL_SIZE
@@ -366,19 +372,19 @@ def Dijkstra():
         distance_from_start = nearest_node.distance_from_start + 1
 
         left_node = None
-        if 0 <= x-1 < COLUMNS:
+        if 0 <= x-1:
             left_node = matrix[y][x-1]
 
         right_node = None
-        if 0 <= x+1 < COLUMNS:
+        if x+1 < COLUMNS:
             right_node = matrix[y][x+1]
 
         upper_node = None
-        if 0 <= y-1 < ROWS:
+        if 0 <= y-1:
             upper_node = matrix[y-1][x]
 
         lower_node = None
-        if 0 <= y+1 < ROWS:
+        if y+1 < ROWS:
             lower_node = matrix[y+1][x]
 
         neighbours = [left_node, right_node, upper_node, lower_node]
@@ -386,7 +392,7 @@ def Dijkstra():
         for neighbour in neighbours:
             if neighbour and not neighbour.is_visited and not neighbour.is_wall:
                 heapq.heappush(unvisited, neighbour)
-                mark_as_visited(neighbour, distance_from_start, nearest_node)
+                mark_as_visited(neighbour, nearest_node, distance_from_start)
 
         if path_found:
             highlight_path()
@@ -442,7 +448,102 @@ def ASearch():
                 if neighbour not in unvisited:
                     heapq.heappush(unvisited, neighbour)
 
-                mark_as_visited(neighbour, tmp_f, nearest_node, tmp_g, tmp_h)
+                mark_as_visited(neighbour, nearest_node, tmp_f, tmp_g, tmp_h)
+
+        if path_found:
+            highlight_path()
+            break
+
+    if not unvisited or not path_found:
+        print('THERE IS NO PATH')
+
+
+def BFS():
+    global path_found
+
+    source = matrix[source_coords[0], source_coords[1]]
+    destination = matrix[destination_coords[0], destination_coords[1]]
+
+    unvisited = [source]
+
+    path_found = False
+
+    while unvisited:
+        nearest_node = unvisited.pop(0)
+
+        y, x = nearest_node.coords
+
+        left_node = None
+        if 0 <= x-1:
+            left_node = matrix[y][x-1]
+
+        right_node = None
+        if x+1 < COLUMNS:
+            right_node = matrix[y][x+1]
+
+        upper_node = None
+        if 0 <= y-1:
+            upper_node = matrix[y-1][x]
+
+        lower_node = None
+        if y+1 < ROWS:
+            lower_node = matrix[y+1][x]
+
+        neighbours = [left_node, right_node, upper_node, lower_node]
+
+        for neighbour in neighbours:
+            if neighbour and not neighbour.is_visited and not neighbour.is_wall:
+
+                if neighbour not in unvisited:
+                    heapq.heappush(unvisited, neighbour)
+                    mark_as_visited(neighbour, predecessor=nearest_node)
+
+        if path_found:
+            highlight_path()
+            break
+
+    if not unvisited or not path_found:
+        print('THERE IS NO PATH')
+
+
+def DFS():
+    global path_found
+
+    source = matrix[source_coords[0], source_coords[1]]
+    destination = matrix[destination_coords[0], destination_coords[1]]
+
+    unvisited = [source]
+
+    path_found = False
+
+    while unvisited:
+        nearest_node = unvisited.pop()
+
+        y, x = nearest_node.coords
+
+        left_node = None
+        if 0 <= x-1:
+            left_node = matrix[y][x-1]
+
+        right_node = None
+        if x+1 < COLUMNS:
+            right_node = matrix[y][x+1]
+
+        upper_node = None
+        if 0 <= y-1:
+            upper_node = matrix[y-1][x]
+
+        lower_node = None
+        if y+1 < ROWS:
+            lower_node = matrix[y+1][x]
+
+        neighbours = [left_node, right_node, upper_node, lower_node]
+
+        for neighbour in neighbours:
+            if neighbour and not neighbour.is_visited and not neighbour.is_wall:
+                if neighbour not in unvisited:
+                    heapq.heappush(unvisited, neighbour)
+                    mark_as_visited(neighbour, predecessor=nearest_node)
 
         if path_found:
             highlight_path()
@@ -456,7 +557,7 @@ def calculate_manhattan_distance(first_node, second_node):
     return abs(first_node.coords[0] - second_node.coords[0]) + abs(first_node.coords[1] - second_node.coords[1])
 
 
-def mark_as_visited(node: Node, distance, predecessor, g=None, h=None):
+def mark_as_visited(node: Node, predecessor, distance=None, g=None, h=None):
     global destination_coords, path_found
 
     node.is_visited = True
@@ -472,6 +573,12 @@ def mark_as_visited(node: Node, distance, predecessor, g=None, h=None):
             node.h = h
             node.f = g+h
             node.predecessor = predecessor
+
+    if algo_selection.get() == 'BFS':
+        node.predecessor = predecessor
+
+    if algo_selection.get() == 'DFS':
+        node.predecessor = predecessor
 
     if node.coords != destination_coords:
         rect = node.shape
