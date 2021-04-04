@@ -271,12 +271,6 @@ def load_grid():
 
             pygame.display.update()
 
-    # with open(fd, 'r') as file:
-    #     print(str(file))
-    #     tmp_matrix = [[float(digit) for digit in line.split()]
-    #                   for line in file]
-    # print(tmp_matrix)
-
 
 def save_grid():
     fd = filedialog.asksaveasfilename(
@@ -297,42 +291,6 @@ def save_grid():
             js = json.dumps(text)
             f.write(js)
             f.close()
-
-
-# def save_grid():
-#     PADDING = (WINDOW_WIDTH - MARGIN * COLUMNS) // COLUMNS
-#     root.withdraw()
-#     fd = filedialog.asksaveasfilename(
-#         initialdir='grid_saves', initialfile='grid0.dat')
-#     f = open(fd, 'w')
-#     if f:
-#         tmp_matrix = init_matrix()
-#         for y in range(ROWS):
-#             for x in range(COLUMNS):
-#                 shape = pygame.Rect(
-#                     (MARGIN + PADDING) * x + MARGIN,
-#                     (MARGIN + PADDING) * y + MARGIN,
-#                     PADDING,
-#                     PADDING,
-#                 )
-
-#                 tmp_matrix[y][x] = Node(coords=(y, x),
-#                                         shape=shape.copy())
-
-#                 if matrix[y][x].is_wall:
-#                     tmp_matrix[y][x].is_wall == True
-
-#         if source_coords:
-#             source = matrix[source_coords[0], source_coords[1]]
-#             tmp_matrix[source_coords[0], source_coords[1]] = source
-#         if destination_coords:
-#             destination = matrix[destination_coords[0], destination_coords[1]]
-#             tmp_matrix[destination_coords[0],
-#                        destination_coords[1]] = destination
-
-#         f.write(str(tmp_matrix))
-#         f.close()
-
 
 def mark_cell():
     global matrix, screen, source_coords, destination_coords
