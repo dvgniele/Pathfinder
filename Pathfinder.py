@@ -3,9 +3,13 @@ import pygame
 import tkinter as tk
 from tkinter import *
 from tkinter.ttk import Combobox
+from tkinter import filedialog
 import os
 import platform
 import heapq
+#import tempfile
+#import itertools as IT
+import json
 
 from pygame.locals import QUIT, KEYDOWN, K_KP_ENTER, K_SPACE, K_ESCAPE, K_s, K_d, K_w, MOUSEBUTTONDOWN, MOUSEBUTTONUP, MOUSEMOTION
 
@@ -72,6 +76,8 @@ class TkWindow:
         self.btn_build_grid = Button(
             win, text='Build Grid', command=self.build_click)
 
+        self.btn_load_grid = Button(win, text='Load Grid', command=load_grid)
+        self.btn_save_grid = Button(win, text='Save Grid', command=save_grid)
         #####   PLACING #####
 
         self.lbl_rows.place(x=50, y=40)
@@ -92,6 +98,8 @@ class TkWindow:
 
         self.btn_build_grid.place(x=50, y=300)
         self.btn_find.place(x=150, y=300)
+        self.btn_load_grid.place(x=50, y=340)
+        self.btn_save_grid.place(x=150, y=340)
 
         root.title('Pathfinder Settings')
         root.geometry("350x400+10+10")
@@ -99,6 +107,8 @@ class TkWindow:
         os.environ['SDL_WINDOWID'] = str(root.winfo_id())
         if platform.system == "Windows":
             os.environ['SDL_VIDEODRIVER'] = 'windib'
+
+        os.environ['SDL_VIDEO_CENTERED'] = '0'
 
     def build_click(self):
         tmp_rows = int(self.t_rows.get())
@@ -172,6 +182,10 @@ def init_settings_window():
 def init_pygame():
     global pygame_started, matrix, screen
 
+    if screen:
+        pygame_started = False
+        pygame.quit()
+
     screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
     screen.fill(CELL_BORDER)
     pygame.display.set_caption('Pathfinder')
@@ -195,17 +209,129 @@ def init_grid():
     global screen, matrix
     PADDING = (WINDOW_WIDTH - MARGIN * COLUMNS) // COLUMNS
 
-    for x in range(ROWS):
-        for y in range(COLUMNS):
+    for y in range(ROWS):
+        for x in range(COLUMNS):
             shape = pygame.Rect(
-                (MARGIN + PADDING) * y + MARGIN,
                 (MARGIN + PADDING) * x + MARGIN,
+                (MARGIN + PADDING) * y + MARGIN,
                 PADDING,
                 PADDING,
             )
             pygame.draw.rect(screen, CELL, shape)
-            matrix[x][y] = Node(coords=(x, y),
+            matrix[y][x] = Node(coords=(y, x),
                                 shape=shape.copy())
+
+
+def load_grid():
+    global source_coords, destination_coords, matrix
+    fd = filedialog.askopenfilename(
+        initialdir='grid_saves', initialfile='grid0.dat')
+    if fd:
+        f = open(fd, 'r')
+        if f:
+            text = f.read()
+            f.close()
+            decoded = json.loads(text)
+
+            rows = decoded['rows']
+            cols = decoded['columns']
+            cell_size = decoded['cell_size']
+
+            refresh_rows_cols(rows, cols, cell_size)
+
+            source_coords = decoded['source_coords']
+            destination_coords = decoded['destination_coords']
+
+            walls = decoded['walls']
+
+            init_pygame()
+
+            for wall in walls:
+                wall_coords = wall
+                wall_cell = matrix[wall_coords[0], wall_coords[1]]
+                rect = wall_cell.shape
+                pygame.draw.rect(screen, WALL, rect)
+                wall_cell.is_wall = True
+
+            pygame.display.update()
+
+            if destination_coords:
+                destination_cell = matrix[destination_coords[0],
+                                          destination_coords[1]]
+                pygame.draw.rect(screen, DESTINATION, destination_cell.shape)
+                matrix[destination_coords[0], destination_coords[1]] = Node(
+                    destination_coords, destination_cell.shape.copy())
+
+            if source_coords:
+                source_cell = matrix[source_coords[0], source_coords[1]]
+                pygame.draw.rect(screen, SOURCE, source_cell.shape)
+                matrix[source_coords[0], source_coords[1]] = Node(source_coords, source_cell.shape.copy(),
+                                                                  distance_from_start=0, is_wall=True, is_visited=True,
+                                                                  predecessor=None)
+
+            pygame.display.update()
+
+    # with open(fd, 'r') as file:
+    #     print(str(file))
+    #     tmp_matrix = [[float(digit) for digit in line.split()]
+    #                   for line in file]
+    # print(tmp_matrix)
+
+
+def save_grid():
+    fd = filedialog.asksaveasfilename(
+        initialdir='grid_saves', initialfile='grid0.dat')
+
+    if fd:
+        f = open(fd, 'w')
+        if f:
+            walls = []
+            for y in range(ROWS):
+                for x in range(COLUMNS):
+                    if matrix[y][x].is_wall and matrix[y][x].coords != source_coords:
+                        walls.append((matrix[y][x].coords))
+
+            text = {"rows": ROWS, "columns": COLUMNS, "cell_size": CELL_SIZE, "source_coords": source_coords,
+                    "destination_coords": destination_coords, "walls": walls}
+
+            js = json.dumps(text)
+            f.write(js)
+            f.close()
+
+
+# def save_grid():
+#     PADDING = (WINDOW_WIDTH - MARGIN * COLUMNS) // COLUMNS
+#     root.withdraw()
+#     fd = filedialog.asksaveasfilename(
+#         initialdir='grid_saves', initialfile='grid0.dat')
+#     f = open(fd, 'w')
+#     if f:
+#         tmp_matrix = init_matrix()
+#         for y in range(ROWS):
+#             for x in range(COLUMNS):
+#                 shape = pygame.Rect(
+#                     (MARGIN + PADDING) * x + MARGIN,
+#                     (MARGIN + PADDING) * y + MARGIN,
+#                     PADDING,
+#                     PADDING,
+#                 )
+
+#                 tmp_matrix[y][x] = Node(coords=(y, x),
+#                                         shape=shape.copy())
+
+#                 if matrix[y][x].is_wall:
+#                     tmp_matrix[y][x].is_wall == True
+
+#         if source_coords:
+#             source = matrix[source_coords[0], source_coords[1]]
+#             tmp_matrix[source_coords[0], source_coords[1]] = source
+#         if destination_coords:
+#             destination = matrix[destination_coords[0], destination_coords[1]]
+#             tmp_matrix[destination_coords[0],
+#                        destination_coords[1]] = destination
+
+#         f.write(str(tmp_matrix))
+#         f.close()
 
 
 def mark_cell():
@@ -222,7 +348,6 @@ def mark_cell():
             source_cell = None
             if source_coords is None:
                 source_coords = x, y
-                source_cell = matrix[source_coords[0], source_coords[1]]
 
             else:
                 source_cell = matrix[source_coords[0], source_coords[1]]
@@ -230,10 +355,10 @@ def mark_cell():
                 matrix[source_coords[0], source_coords[1]] = Node(source_coords, source_cell.shape.copy(), distance_from_start=np.inf,
                                                                   is_wall=False, is_visited=False, predecessor=None)
                 source_coords = x, y
-                source_cell = matrix[source_coords[0], source_coords[1]]
+
+            source_cell = matrix[source_coords[0], source_coords[1]]
 
             pygame.draw.rect(screen, SOURCE, source_cell.shape)
-
             matrix[source_coords[0], source_coords[1]] = Node(source_coords, source_cell.shape.copy(), distance_from_start=0,
                                                               is_wall=True, is_visited=True, predecessor=None)
 
@@ -242,8 +367,6 @@ def mark_cell():
         if hover_node.coords is not source_coords and hover_node.coords is not destination_coords:
             if destination_coords is None:
                 destination_coords = x, y
-                destination_cell = matrix[destination_coords[0],
-                                          destination_coords[1]]
 
             else:
                 destination_cell = matrix[destination_coords[0],
@@ -254,8 +377,9 @@ def mark_cell():
                     destination_coords, destination_cell.shape.copy())
 
                 destination_coords = x, y
-                destination_cell = matrix[destination_coords[0],
-                                          destination_coords[1]]
+
+            destination_cell = matrix[destination_coords[0],
+                                      destination_coords[1]]
 
             pygame.draw.rect(screen, DESTINATION, destination_cell.shape)
             matrix[destination_coords[0], destination_coords[1]] = Node(
