@@ -132,8 +132,6 @@ CELL_BORDER = (0, 0, 0)
 SOURCE = (0, 0, 255)
 DESTINATION = (255, 0, 0)
 VISITED = (255, 255, 255)
-# VISITED = (255, 255, 0)
-# PATH = (0, 255, 0)
 PATH = (114, 255, 209)
 
 
@@ -367,27 +365,9 @@ def Dijkstra():
 
     while unvisited:
         nearest_node = heapq.heappop(unvisited)
-
-        y, x = nearest_node.coords
         distance_from_start = nearest_node.distance_from_start + 1
 
-        left_node = None
-        if 0 <= x-1:
-            left_node = matrix[y][x-1]
-
-        right_node = None
-        if x+1 < COLUMNS:
-            right_node = matrix[y][x+1]
-
-        upper_node = None
-        if 0 <= y-1:
-            upper_node = matrix[y-1][x]
-
-        lower_node = None
-        if y+1 < ROWS:
-            lower_node = matrix[y+1][x]
-
-        neighbours = [left_node, right_node, upper_node, lower_node]
+        neighbours = find_neighbours(nearest_node.coords)
 
         for neighbour in neighbours:
             if neighbour and not neighbour.is_visited and not neighbour.is_wall:
@@ -419,25 +399,7 @@ def ASearch():
     while unvisited:
         nearest_node = unvisited.pop(0)
 
-        y, x = nearest_node.coords
-
-        left_node = None
-        if 0 <= x-1:
-            left_node = matrix[y][x-1]
-
-        right_node = None
-        if x+1 < COLUMNS:
-            right_node = matrix[y][x+1]
-
-        upper_node = None
-        if 0 <= y-1:
-            upper_node = matrix[y-1][x]
-
-        lower_node = None
-        if y+1 < ROWS:
-            lower_node = matrix[y+1][x]
-
-        neighbours = [left_node, right_node, upper_node, lower_node]
+        neighbours = find_neighbours(nearest_node.coords)
 
         for neighbour in neighbours:
             if neighbour and not neighbour.is_visited and not neighbour.is_wall:
@@ -471,25 +433,7 @@ def BFS():
     while unvisited:
         nearest_node = unvisited.pop(0)
 
-        y, x = nearest_node.coords
-
-        left_node = None
-        if 0 <= x-1:
-            left_node = matrix[y][x-1]
-
-        right_node = None
-        if x+1 < COLUMNS:
-            right_node = matrix[y][x+1]
-
-        upper_node = None
-        if 0 <= y-1:
-            upper_node = matrix[y-1][x]
-
-        lower_node = None
-        if y+1 < ROWS:
-            lower_node = matrix[y+1][x]
-
-        neighbours = [left_node, right_node, upper_node, lower_node]
+        neighbours = find_neighbours(nearest_node.coords)
 
         for neighbour in neighbours:
             if neighbour and not neighbour.is_visited and not neighbour.is_wall:
@@ -519,25 +463,7 @@ def DFS():
     while unvisited:
         nearest_node = unvisited.pop()
 
-        y, x = nearest_node.coords
-
-        left_node = None
-        if 0 <= x-1:
-            left_node = matrix[y][x-1]
-
-        right_node = None
-        if x+1 < COLUMNS:
-            right_node = matrix[y][x+1]
-
-        upper_node = None
-        if 0 <= y-1:
-            upper_node = matrix[y-1][x]
-
-        lower_node = None
-        if y+1 < ROWS:
-            lower_node = matrix[y+1][x]
-
-        neighbours = [left_node, right_node, upper_node, lower_node]
+        neighbours = find_neighbours(nearest_node.coords)
 
         for neighbour in neighbours:
             if neighbour and not neighbour.is_visited and not neighbour.is_wall:
@@ -551,6 +477,28 @@ def DFS():
 
     if not unvisited or not path_found:
         print('THERE IS NO PATH')
+
+
+def find_neighbours(coords):
+    y, x = coords
+
+    left_node = None
+    if 0 <= x-1:
+        left_node = matrix[y][x-1]
+
+    right_node = None
+    if x+1 < COLUMNS:
+        right_node = matrix[y][x+1]
+
+    upper_node = None
+    if 0 <= y-1:
+        upper_node = matrix[y-1][x]
+
+    lower_node = None
+    if y+1 < ROWS:
+        lower_node = matrix[y+1][x]
+
+    return [left_node, right_node, upper_node, lower_node]
 
 
 def calculate_manhattan_distance(first_node, second_node):
