@@ -14,8 +14,10 @@
 - [x] Grid Generation
 - [x] Dijkstra Algorithm
 - [x] A* Algorithm
-- [ ] Breadth-First Search 
-- [ ] Depth-First Search
+- [x] Breadth-First Search 
+- [x] Depth-First Search
+- [x] Grid Saving
+- [x] Grid Loading 
 - [ ] Code Refactoring
 
 <a name="wiki"></a>
