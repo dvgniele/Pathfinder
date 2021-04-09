@@ -10,7 +10,7 @@ import heapq
 from queue import PriorityQueue
 import json
 
-from pygame.locals import QUIT, KEYDOWN, K_KP_ENTER, K_SPACE, K_ESCAPE, K_s, K_d, K_w, MOUSEBUTTONDOWN, MOUSEBUTTONUP, MOUSEMOTION
+from pygame.locals import QUIT, KEYDOWN, K_RETURN, K_ESCAPE, K_BACKSPACE, K_s, K_d, K_w, MOUSEBUTTONDOWN, MOUSEBUTTONUP, MOUSEMOTION
 
 
 class Node:
@@ -82,6 +82,8 @@ class TkWindow:
         self.btn_find = Button(win, text='Find Path', command=find_path)
         self.btn_build_grid = Button(
             win, text='Build Grid', command=self.build_click)
+        self.btn_reset_last_grid = Button(
+            win, text='Reset Last', command=reset_last_grid)
 
         self.btn_load_grid = Button(win, text='Load Grid', command=load_grid)
         self.btn_save_grid = Button(win, text='Save Grid', command=save_grid)
@@ -104,7 +106,8 @@ class TkWindow:
         self.rb_erase.place(x=150, y=260)
 
         self.btn_build_grid.place(x=50, y=300)
-        self.btn_find.place(x=150, y=300)
+        self.btn_reset_last_grid.place(x=150, y=300)
+        self.btn_find.place(x=250, y=340)
         self.btn_load_grid.place(x=50, y=340)
         self.btn_save_grid.place(x=150, y=340)
 
@@ -236,7 +239,7 @@ def init_matrix():
 
 def init_grid():
     """
-    Initializes the grid into the pygame window 
+    Initializes the grid into the pygame window
     """
     global screen, matrix
     PADDING = (WINDOW_WIDTH - MARGIN * COLUMNS) // COLUMNS
@@ -252,6 +255,43 @@ def init_grid():
             pygame.draw.rect(screen, CELL, shape)
             matrix[y][x] = Node(coords=(y, x),
                                 shape=shape.copy())
+
+
+def reset_last_grid():
+    if not pygame_started:
+        init_pygame()
+        return
+
+    walls = []
+    for y in range(ROWS):
+        for x in range(COLUMNS):
+            if matrix[y][x].is_wall and matrix[y][x].coords != source_coords:
+                walls.append((matrix[y][x].coords))
+
+    init_pygame()
+
+    for wall in walls:
+        wall_coords = wall
+        wall_cell = matrix[wall_coords[0], wall_coords[1]]
+        rect = wall_cell.shape
+        pygame.draw.rect(screen, WALL, rect)
+        wall_cell.is_wall = True
+
+    pygame.display.update()
+
+    if destination_coords:
+        destination_cell = matrix[destination_coords[0], destination_coords[1]]
+        pygame.draw.rect(screen, DESTINATION, destination_cell.shape)
+        matrix[destination_coords[0], destination_coords[1]] = Node(
+            destination_coords, destination_cell.shape.copy())
+
+    if source_coords:
+        source_cell = matrix[source_coords[0], source_coords[1]]
+        pygame.draw.rect(screen, SOURCE, source_cell.shape)
+        matrix[source_coords[0], source_coords[1]] = Node(source_coords, source_cell.shape.copy(),
+                                                          distance_from_start=0, is_wall=True, is_visited=True, predecessor=None)
+
+    pygame.display.update()
 
 
 def load_grid():
@@ -426,6 +466,23 @@ def mark_cell():
     pygame.display.update()
 
 
+def place_random_nodes():
+    global source_coords, destination_coords
+
+    init_grid()
+
+    source_coords = (np.random.randint(0, ROWS),
+                     np.random.randint(0, COLUMNS))
+    destination_coords = (np.random.randint(0, ROWS),
+                          np.random.randint(0, COLUMNS))
+
+    while source_coords == destination_coords:
+        destination_coords = (np.random.randint(0, ROWS),
+                              np.random.randint(0, COLUMNS))
+
+    reset_last_grid()
+
+
 def find_path():
     """
     Finds the path using the selected algorithm
@@ -437,17 +494,19 @@ def find_path():
         init_pygame()
         return
 
-    if algo_selection.get() == 'Dijkstra':
-        Dijkstra()
+    if source_coords and destination_coords:
 
-    if algo_selection.get() == 'ASearch':
-        ASearch()
+        if algo_selection.get() == 'Dijkstra':
+            Dijkstra()
 
-    if algo_selection.get() == 'BFS':
-        BFS()
+        if algo_selection.get() == 'ASearch':
+            ASearch()
 
-    if algo_selection.get() == 'DFS':
-        DFS()
+        if algo_selection.get() == 'BFS':
+            BFS()
+
+        if algo_selection.get() == 'DFS':
+            DFS()
 
 
 def refresh_rows_cols(rows, cols, cell_size):
@@ -486,11 +545,11 @@ def check_for_events():
                 pygame_started = False
                 pygame.quit()
 
-            if event.key == K_KP_ENTER:
-                pass
+            if event.key == K_RETURN:
+                place_random_nodes()
 
-            if event.key == K_SPACE:
-                pass
+            if event.key == K_BACKSPACE:
+                reset_last_grid()
 
         if event.type == MOUSEBUTTONDOWN:
             mark_cell()
