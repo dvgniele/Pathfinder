@@ -35,7 +35,11 @@
 - Click on the `Find Path` button to start the algorithm
 ## How it looks
 > ### Path found with Dijkstra:
-![Dijkstra path](https://i.imgur.com/bOOCI75.png)
+![Dijkstra path](https://i.imgur.com/mGpTEWT.png)
 > ### Path found with A*:
-![A* path](https://i.imgur.com/OPbSe8V.png)
+![A* path](https://i.imgur.com/Vg6liqd.png)
+> ### Path found with A* on a 100x100 grid:
+![A* path 100x100 grid](https://i.imgur.com/PHEboSc.png)
+> ### Path found with A* on a 100x100 grid:
+![A* path 30x30_maze Saved Grid](https://i.imgur.com/QdkYmjV.png)
 
