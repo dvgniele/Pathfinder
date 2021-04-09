@@ -7,8 +7,7 @@ from tkinter import filedialog
 import os
 import platform
 import heapq
-#import tempfile
-#import itertools as IT
+from queue import PriorityQueue
 import json
 
 from pygame.locals import QUIT, KEYDOWN, K_KP_ENTER, K_SPACE, K_ESCAPE, K_s, K_d, K_w, MOUSEBUTTONDOWN, MOUSEBUTTONUP, MOUSEMOTION
@@ -22,15 +21,19 @@ class Node:
         self.is_wall = is_wall
         self.is_visited = is_visited
         self.predecessor = predecessor
-        self.f = f
-        self.g = g
-        self.h = h
+        self.f = f      # f-value for A Search
+        self.g = g      # g-value for A Search
+        self.h = h      # h-value for A Search
 
     def __lt__(self, node_to_check):
         return self.distance_from_start < node_to_check.distance_from_start
 
 
 class Enum(set):
+    """
+    Class used to emulate Enum
+    """
+
     def __getattr__(self, name):
         if name in self:
             return name
@@ -38,6 +41,10 @@ class Enum(set):
 
 
 class TkWindow:
+    """
+    Class used to handle the tkinter window
+    """
+
     def __init__(self, win):
         global algo_selection, edit_mode_rb
 
@@ -146,15 +153,24 @@ PATH = (114, 255, 209)
 
 
 def close():
+    """
+    Closes the program
+    """
     global running, pygame_started
     running = False
     pygame_started = False
     pygame.quit()
 
 
+"""
+Settings Window (Tkinter)
+"""
 root = tk.Tk()
 root.protocol('WM_DELETE_WINDOW', close)
 
+"""
+Grid Window (PyGame)
+"""
 screen = None
 
 current_mode = EDITING_MODES.SOURCE
@@ -172,14 +188,24 @@ path_found = False
 running = True
 pygame_started = False
 
+
+"""
+true when holding down the mouse button
+"""
 holding = False
 
 
 def init_settings_window():
+    """
+    Starts the settings window
+    """
     settings_win = TkWindow(root)
 
 
 def init_pygame():
+    """
+    Starts the pygame window
+    """
     global pygame_started, matrix, screen
 
     if screen:
@@ -202,10 +228,16 @@ def init_pygame():
 
 
 def init_matrix():
+    """
+    Returns a bidimensional matrix
+    """
     return np.empty((ROWS, COLUMNS), dtype=Node)
 
 
 def init_grid():
+    """
+    Initializes the grid into the pygame window 
+    """
     global screen, matrix
     PADDING = (WINDOW_WIDTH - MARGIN * COLUMNS) // COLUMNS
 
@@ -223,6 +255,9 @@ def init_grid():
 
 
 def load_grid():
+    """
+    Loads grid-datas from file and starts the pygame windows 
+    """
     global source_coords, destination_coords, matrix
     fd = filedialog.askopenfilename(
         initialdir='grid_saves', initialfile='grid0.dat')
@@ -246,6 +281,9 @@ def load_grid():
 
             init_pygame()
 
+            """
+            Drawing the walls 
+            """
             for wall in walls:
                 wall_coords = wall
                 wall_cell = matrix[wall_coords[0], wall_coords[1]]
@@ -255,6 +293,9 @@ def load_grid():
 
             pygame.display.update()
 
+            """
+            Drawing the destination 
+            """
             if destination_coords:
                 destination_cell = matrix[destination_coords[0],
                                           destination_coords[1]]
@@ -262,6 +303,9 @@ def load_grid():
                 matrix[destination_coords[0], destination_coords[1]] = Node(
                     destination_coords, destination_cell.shape.copy())
 
+            """
+            Drawing the source 
+            """
             if source_coords:
                 source_cell = matrix[source_coords[0], source_coords[1]]
                 pygame.draw.rect(screen, SOURCE, source_cell.shape)
@@ -273,6 +317,9 @@ def load_grid():
 
 
 def save_grid():
+    """
+    Saves grid-datas from file and starts the pygame windows 
+    """
     fd = filedialog.asksaveasfilename(
         initialdir='grid_saves', initialfile='grid0.dat')
 
@@ -292,7 +339,11 @@ def save_grid():
             f.write(js)
             f.close()
 
+
 def mark_cell():
+    """
+    Marks the cell hovered by the mouse cursor 
+    """
     global matrix, screen, source_coords, destination_coords
     coords = pygame.mouse.get_pos()
     x = coords[1]//CELL_SIZE
@@ -300,13 +351,18 @@ def mark_cell():
 
     hover_node = matrix[x][y]
 
+    """
+    SOURCE CELL MODE 
+    """
     if current_mode == EDITING_MODES.SOURCE:
         if hover_node.coords is not source_coords and hover_node.coords is not destination_coords:
-
             source_cell = None
+
+            """
+            If there is no Source node it initializes it, overwrites instead
+            """
             if source_coords is None:
                 source_coords = x, y
-
             else:
                 source_cell = matrix[source_coords[0], source_coords[1]]
                 pygame.draw.rect(screen, CELL, source_cell.shape)
@@ -320,12 +376,18 @@ def mark_cell():
             matrix[source_coords[0], source_coords[1]] = Node(source_coords, source_cell.shape.copy(), distance_from_start=0,
                                                               is_wall=True, is_visited=True, predecessor=None)
 
+    """
+    DESTINATION CELL MODE 
+    """
     if current_mode == EDITING_MODES.DESTINATION:
-        destination_cell = None
         if hover_node.coords is not source_coords and hover_node.coords is not destination_coords:
+            destination_cell = None
+
+            """
+            If there is no Destination node it initializes it, overwrites instead
+            """
             if destination_coords is None:
                 destination_coords = x, y
-
             else:
                 destination_cell = matrix[destination_coords[0],
                                           destination_coords[1]]
@@ -343,12 +405,18 @@ def mark_cell():
             matrix[destination_coords[0], destination_coords[1]] = Node(
                 destination_coords, destination_cell.shape.copy())
 
+    """
+    WALL CELL MODE 
+    """
     if current_mode == EDITING_MODES.WALL:
         if hover_node.coords is not source_coords and hover_node.coords is not destination_coords:
             hover_node.is_wall = True
             rect = hover_node.shape
             pygame.draw.rect(screen, WALL, rect)
 
+    """
+    ERASE CELL MODE 
+    """
     if current_mode == EDITING_MODES.ERASE:
         if hover_node.coords is not source_coords and hover_node.coords is not destination_coords:
             pygame.draw.rect(screen, CELL, hover_node.shape)
@@ -359,6 +427,10 @@ def mark_cell():
 
 
 def find_path():
+    """
+    Finds the path using the selected algorithm
+    """
+
     global pygame_started
 
     if not pygame_started:
@@ -379,6 +451,10 @@ def find_path():
 
 
 def refresh_rows_cols(rows, cols, cell_size):
+    """
+    Refreshs the values for rows, columns and cell size
+    """
+
     global ROWS, COLUMNS, WINDOW_WIDTH, WINDOW_HEIGHT, CELL_SIZE
 
     if rows is not 0:
@@ -395,6 +471,9 @@ def refresh_rows_cols(rows, cols, cell_size):
 
 
 def check_for_events():
+    """
+    Listens for events inside of the pygame window
+    """
     global pygame_started, holding, screen
 
     for event in pygame.event.get():
@@ -446,6 +525,10 @@ def Dijkstra():
     path_found = False
 
     while unvisited:
+        if path_found:
+            highlight_path()
+            break
+
         nearest_node = heapq.heappop(unvisited)
         distance_from_start = nearest_node.distance_from_start + 1
 
@@ -455,10 +538,6 @@ def Dijkstra():
             if neighbour and not neighbour.is_visited and not neighbour.is_wall:
                 heapq.heappush(unvisited, neighbour)
                 mark_as_visited(neighbour, nearest_node, distance_from_start)
-
-        if path_found:
-            highlight_path()
-            break
 
     if not unvisited or not path_found:
         print('THERE IS NO PATH')
@@ -474,29 +553,36 @@ def ASearch():
     source.h = calculate_manhattan_distance(source, destination)
     source.f = source.g + source.h
 
-    unvisited = [source]
+    count = 0
+    unvisited = PriorityQueue()
+    unvisited.put((0, count, source))
 
     path_found = False
 
     while unvisited:
-        nearest_node = unvisited.pop(0)
+        if path_found:
+            highlight_path()
+            break
+
+        nearest_node = unvisited.get()[2]
 
         neighbours = find_neighbours(nearest_node.coords)
 
         for neighbour in neighbours:
-            if neighbour and not neighbour.is_visited and not neighbour.is_wall:
+
+            if neighbour and not neighbour.is_wall:
                 tmp_g = calculate_manhattan_distance(neighbour, source)
-                tmp_h = calculate_manhattan_distance(neighbour, destination)
-                tmp_f = tmp_g + tmp_h
 
-                if neighbour not in unvisited:
-                    heapq.heappush(unvisited, neighbour)
+                if tmp_g < neighbour.g:
+                    tmp_h = calculate_manhattan_distance(
+                        neighbour, destination)
+                    tmp_f = tmp_g + tmp_h
 
-                mark_as_visited(neighbour, nearest_node, tmp_f, tmp_g, tmp_h)
-
-        if path_found:
-            highlight_path()
-            break
+                    if not neighbour.is_visited:
+                        mark_as_visited(neighbour, nearest_node,
+                                        tmp_f, tmp_g, tmp_h)
+                        count += 1
+                        unvisited.put((neighbour.f, count, neighbour))
 
     if not unvisited or not path_found:
         print('THERE IS NO PATH')
@@ -513,6 +599,10 @@ def BFS():
     path_found = False
 
     while unvisited:
+        if path_found:
+            highlight_path()
+            break
+
         nearest_node = unvisited.pop(0)
 
         neighbours = find_neighbours(nearest_node.coords)
@@ -523,10 +613,6 @@ def BFS():
                 if neighbour not in unvisited:
                     heapq.heappush(unvisited, neighbour)
                     mark_as_visited(neighbour, predecessor=nearest_node)
-
-        if path_found:
-            highlight_path()
-            break
 
     if not unvisited or not path_found:
         print('THERE IS NO PATH')
@@ -543,6 +629,10 @@ def DFS():
     path_found = False
 
     while unvisited:
+        if path_found:
+            highlight_path()
+            break
+
         nearest_node = unvisited.pop()
 
         neighbours = find_neighbours(nearest_node.coords)
@@ -553,15 +643,14 @@ def DFS():
                     heapq.heappush(unvisited, neighbour)
                     mark_as_visited(neighbour, predecessor=nearest_node)
 
-        if path_found:
-            highlight_path()
-            break
-
     if not unvisited or not path_found:
         print('THERE IS NO PATH')
 
 
 def find_neighbours(coords):
+    """
+    Finds the neighbours of the cell at given matrix coords
+    """
     y, x = coords
 
     left_node = None
@@ -584,10 +673,16 @@ def find_neighbours(coords):
 
 
 def calculate_manhattan_distance(first_node, second_node):
+    """
+    Calculates the manhattan distance between 2 nodes
+    """
     return abs(first_node.coords[0] - second_node.coords[0]) + abs(first_node.coords[1] - second_node.coords[1])
 
 
 def mark_as_visited(node: Node, predecessor, distance=None, g=None, h=None):
+    """
+    Marks the given node as visited
+    """
     global destination_coords, path_found
 
     node.is_visited = True
@@ -598,11 +693,10 @@ def mark_as_visited(node: Node, predecessor, distance=None, g=None, h=None):
             node.predecessor = predecessor
 
     if algo_selection.get() == 'ASearch':
-        if distance < node.f:
-            node.g = g
-            node.h = h
-            node.f = g+h
-            node.predecessor = predecessor
+        node.g = g
+        node.h = h
+        node.f = g+h
+        node.predecessor = predecessor
 
     if algo_selection.get() == 'BFS':
         node.predecessor = predecessor
@@ -620,6 +714,9 @@ def mark_as_visited(node: Node, predecessor, distance=None, g=None, h=None):
 
 
 def highlight_path():
+    """
+    Highlights the path
+    """
     global destination_coords, source_coords
 
     path_lenght = 0
