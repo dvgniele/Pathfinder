@@ -1,7 +1,7 @@
 Pathfinder
 ==========
 
-> A little python project using the pygame module. A little pathfinding visualizer.
+> A Python pathfinding visualizer for algorithms such as Dijkstra and A*. Includes drawing, save and load features. 
 
 Table of Contents
 =================
