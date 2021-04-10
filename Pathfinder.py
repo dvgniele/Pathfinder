@@ -488,11 +488,15 @@ def find_path():
     Finds the path using the selected algorithm
     """
 
-    global pygame_started
+    global pygame_started, path_found
 
     if not pygame_started:
         init_pygame()
         return
+
+    if path_found:
+        reset_last_grid()
+        path_found = False
 
     if source_coords and destination_coords:
 
