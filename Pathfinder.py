@@ -26,7 +26,11 @@ class Node:
         self.h = h      # h-value for A Search
 
     def __lt__(self, node_to_check):
-        return self.distance_from_start < node_to_check.distance_from_start
+        global algo_selection
+        if algo_selection.get() == 'Dijkstra':
+            return self.distance_from_start < node_to_check.distance_from_start
+        elif algo_selection.get() == 'ASearch':
+            return self.f < node_to_check.f
 
 
 class Enum(set):
@@ -146,13 +150,13 @@ COLUMNS = 25
 WINDOW_WIDTH = COLUMNS*CELL_SIZE
 WINDOW_HEIGHT = ROWS*CELL_SIZE
 
-CELL = (192, 192, 192)
-WALL = (0, 0, 0)
-CELL_BORDER = (0, 0, 0)
-SOURCE = (0, 0, 255)
-DESTINATION = (255, 0, 0)
-VISITED = (255, 255, 255)
-PATH = (114, 255, 209)
+CELL = (255, 255, 255)
+WALL = (128, 128, 128)
+CELL_BORDER = (172, 172, 172)
+SOURCE = (0, 220, 0)
+DESTINATION = (237, 67, 0)
+VISITED = (198, 255, 255)
+PATH = (251, 255, 100)
 
 
 def close():
@@ -241,8 +245,14 @@ def init_grid():
     """
     Initializes the grid into the pygame window
     """
-    global screen, matrix
+    global screen, matrix, source_coords, destination_coords
     PADDING = (WINDOW_WIDTH - MARGIN * COLUMNS) // COLUMNS
+
+    if source_coords and (source_coords[0] >= ROWS or source_coords[1] >= COLUMNS):
+        source_coords = None
+
+    if destination_coords and (destination_coords[0] >= ROWS or destination_coords[1] >= COLUMNS):
+        destination_coords = None
 
     for y in range(ROWS):
         for x in range(COLUMNS):
@@ -258,6 +268,8 @@ def init_grid():
 
 
 def reset_last_grid():
+    global source_coords, destination_coords
+
     if not pygame_started:
         init_pygame()
         return
@@ -268,7 +280,13 @@ def reset_last_grid():
             if matrix[y][x].is_wall and matrix[y][x].coords != source_coords:
                 walls.append((matrix[y][x].coords))
 
+    _source_coords = source_coords
+    _destination_coords = destination_coords
+
     init_pygame()
+
+    source_coords = _source_coords
+    destination_coords = _destination_coords
 
     for wall in walls:
         wall_coords = wall
@@ -520,13 +538,13 @@ def refresh_rows_cols(rows, cols, cell_size):
 
     global ROWS, COLUMNS, WINDOW_WIDTH, WINDOW_HEIGHT, CELL_SIZE
 
-    if rows is not 0:
+    if rows != 0:
         ROWS = rows
 
-    if cols is not 0:
+    if cols != 0:
         COLUMNS = cols
 
-    if cell_size is not 0:
+    if cell_size != 0:
         CELL_SIZE = cell_size
 
     WINDOW_WIDTH = COLUMNS*CELL_SIZE

@@ -48,11 +48,10 @@ Wiki
 <a name="hil"></a>
 > ### How it looks
 > #### Path found with Dijkstra:
-![Dijkstra path](https://i.imgur.com/mGpTEWT.png)
+![Dijkstra path](https://i.imgur.com/UKvnH7C.png)
 > #### Path found with A*:
-![A* path](https://i.imgur.com/Vg6liqd.png)
+![A* path](https://i.imgur.com/QuMrgIH.png)
 > #### Path found with A* on a 100x100 grid:
-![A* path 100x100 grid](https://i.imgur.com/PHEboSc.png)
+![A* path 100x100 grid](https://i.imgur.com/N9zvKBo.png)
 > #### Path found with A* on a 100x100 grid:
-![A* path 30x30_maze Saved Grid](https://i.imgur.com/QdkYmjV.png)
-
+![A* path 30x30_maze Saved Grid](https://i.imgur.com/DkGzts0.png)
