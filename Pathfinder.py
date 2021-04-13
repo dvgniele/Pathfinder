@@ -50,7 +50,7 @@ class TkWindow:
     """
 
     def __init__(self, win):
-        global algo_selection, edit_mode_rb
+        global algo_selection, edit_mode_rb, high_contrast_mode
 
         #####   DECLARING LABELS AND ENTRIES   #####
         self.lbl_rows = Label(win, text='Rows:')
@@ -81,6 +81,10 @@ class TkWindow:
             win, text='Wall', variable=edit_mode_rb, value=3, command=change_editing_mode)
         self.rb_erase = Radiobutton(
             win, text='Erase', variable=edit_mode_rb, value=4, command=change_editing_mode)
+
+        high_contrast_mode.set(False)
+        self.cb_contrast_mode = Checkbutton(
+            win, text="High Contrast", variable=high_contrast_mode, command=set_contrast_mode)
 
         #####   BUTTONS    #####
         self.btn_find = Button(win, text='Find Path', command=find_path)
@@ -114,6 +118,8 @@ class TkWindow:
         self.btn_find.place(x=250, y=340)
         self.btn_load_grid.place(x=50, y=340)
         self.btn_save_grid.place(x=150, y=340)
+
+        self.cb_contrast_mode.place(x=230, y=300)
 
         root.title('Pathfinder Settings')
         root.geometry("350x400+10+10")
@@ -158,6 +164,22 @@ DESTINATION = (237, 67, 0)
 VISITED = (198, 255, 255)
 PATH = (251, 255, 100)
 
+LC_CELL = (255, 255, 255)
+LC_WALL = (128, 128, 128)
+LC_CELL_BORDER = (172, 172, 172)
+LC_SOURCE = (0, 220, 0)
+LC_DESTINATION = (237, 67, 0)
+LC_VISITED = (198, 255, 255)
+LC_PATH = (251, 255, 100)
+
+HC_CELL = (192, 192, 192)
+HC_WALL = (0, 0, 0)
+HC_CELL_BORDER = (0, 0, 0)
+HC_SOURCE = (0, 0, 255)
+HC_DESTINATION = (255, 0, 0)
+HC_VISITED = (255, 255, 255)
+HC_PATH = (114, 255, 209)
+
 
 def close():
     """
@@ -184,6 +206,8 @@ current_mode = EDITING_MODES.SOURCE
 edit_mode_rb = IntVar()
 
 algo_selection = StringVar()
+
+high_contrast_mode = BooleanVar()
 
 matrix = None
 
@@ -226,6 +250,8 @@ def init_pygame():
     pygame.display.init()
 
     pygame.display.update()
+
+    path_found = False
 
     matrix = init_matrix()
     init_grid()
@@ -314,7 +340,7 @@ def reset_last_grid():
 
 def load_grid():
     """
-    Loads grid-datas from file and starts the pygame windows 
+    Loads grid-datas from file and starts the pygame windows
     """
     global source_coords, destination_coords, matrix
     fd = filedialog.askopenfilename(
@@ -340,7 +366,7 @@ def load_grid():
             init_pygame()
 
             """
-            Drawing the walls 
+            Drawing the walls
             """
             for wall in walls:
                 wall_coords = wall
@@ -352,7 +378,7 @@ def load_grid():
             pygame.display.update()
 
             """
-            Drawing the destination 
+            Drawing the destination
             """
             if destination_coords:
                 destination_cell = matrix[destination_coords[0],
@@ -362,7 +388,7 @@ def load_grid():
                     destination_coords, destination_cell.shape.copy())
 
             """
-            Drawing the source 
+            Drawing the source
             """
             if source_coords:
                 source_cell = matrix[source_coords[0], source_coords[1]]
@@ -376,7 +402,7 @@ def load_grid():
 
 def save_grid():
     """
-    Saves grid-datas from file and starts the pygame windows 
+    Saves grid-datas from file and starts the pygame windows
     """
     fd = filedialog.asksaveasfilename(
         initialdir='grid_saves', initialfile='grid0.dat')
@@ -400,7 +426,7 @@ def save_grid():
 
 def mark_cell():
     """
-    Marks the cell hovered by the mouse cursor 
+    Marks the cell hovered by the mouse cursor
     """
     global matrix, screen, source_coords, destination_coords
     coords = pygame.mouse.get_pos()
@@ -410,7 +436,7 @@ def mark_cell():
     hover_node = matrix[x][y]
 
     """
-    SOURCE CELL MODE 
+    SOURCE CELL MODE
     """
     if current_mode == EDITING_MODES.SOURCE:
         if hover_node.coords is not source_coords and hover_node.coords is not destination_coords:
@@ -435,7 +461,7 @@ def mark_cell():
                                                               is_wall=True, is_visited=True, predecessor=None)
 
     """
-    DESTINATION CELL MODE 
+    DESTINATION CELL MODE
     """
     if current_mode == EDITING_MODES.DESTINATION:
         if hover_node.coords is not source_coords and hover_node.coords is not destination_coords:
@@ -464,7 +490,7 @@ def mark_cell():
                 destination_coords, destination_cell.shape.copy())
 
     """
-    WALL CELL MODE 
+    WALL CELL MODE
     """
     if current_mode == EDITING_MODES.WALL:
         if hover_node.coords is not source_coords and hover_node.coords is not destination_coords:
@@ -473,7 +499,7 @@ def mark_cell():
             pygame.draw.rect(screen, WALL, rect)
 
     """
-    ERASE CELL MODE 
+    ERASE CELL MODE
     """
     if current_mode == EDITING_MODES.ERASE:
         if hover_node.coords is not source_coords and hover_node.coords is not destination_coords:
@@ -529,6 +555,38 @@ def find_path():
 
         if algo_selection.get() == 'DFS':
             DFS()
+
+
+def set_contrast_mode():
+    global source_coords, destination_coords, matrix, pygame_started
+
+    global CELL, HC_CELL, LC_CELL
+    global WALL, HC_WALL, LC_WALL
+    global CELL_BORDER, HC_CELL_BORDER, LC_CELL_BORDER
+    global SOURCE, HC_SOURCE, LC_SOURCE
+    global DESTINATION, HC_DESTINATION, LC_DESTINATION
+    global VISITED, HC_VISITED, LC_VISITED
+    global PATH, HC_PATH, LC_PATH
+
+    if high_contrast_mode.get():
+        CELL = HC_CELL
+        WALL = HC_WALL
+        CELL_BORDER = HC_CELL_BORDER
+        SOURCE = HC_SOURCE
+        DESTINATION = HC_DESTINATION
+        VISITED = HC_VISITED
+        PATH = HC_PATH
+    else:
+        CELL = LC_CELL
+        WALL = LC_WALL
+        CELL_BORDER = LC_CELL_BORDER
+        SOURCE = LC_SOURCE
+        DESTINATION = LC_DESTINATION
+        VISITED = LC_VISITED
+        PATH = LC_PATH
+
+    if pygame_started:
+        reset_last_grid()
 
 
 def refresh_rows_cols(rows, cols, cell_size):
